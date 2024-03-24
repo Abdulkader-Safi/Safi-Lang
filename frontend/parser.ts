@@ -1,4 +1,6 @@
-import { BinaryExpr, Expr, Identifier, NullLiteral, NumericLiteral, Program, Stmt } from "./ast.ts";
+// deno-lint-ignore-file no-explicit-any
+import { BinaryExpr, Expr, Identifier, NumericLiteral, Program, Stmt, VarDeclaration } from "./ast.ts";
+
 import { Token, tokenize, TokenType } from "./lexer.ts";
 
 /**
@@ -33,7 +35,6 @@ export default class Parser {
    * Returns the previous token and then advances the tokens array to the next value.
    *  Also checks the type of expected token and throws if the values dnot match.
    */
-  // deno-lint-ignore no-explicit-any
   private expect(type: TokenType, err: any) {
     const prev = this.tokens.shift() as Token;
     if (!prev || prev.type != type) {
@@ -62,7 +63,49 @@ export default class Parser {
   // Handle complex statement types
   private parse_stmt(): Stmt {
     // skip to parse_expr
-    return this.parse_expr();
+    switch (this.at().type) {
+      case TokenType.Let:
+      case TokenType.Const:
+        return this.parse_var_declaration();
+      default:
+        return this.parse_expr();
+    }
+  }
+
+  // LET IDENT;
+  // ( LET | CONST ) IDENT = EXPR;
+  parse_var_declaration(): Stmt {
+    const isConstant = this.eat().type == TokenType.Const;
+    const identifier = this.expect(
+      TokenType.Identifier,
+      "Expected identifier name following let | const keywords."
+    ).value;
+
+    if (this.at().type == TokenType.Semicolon) {
+      this.eat(); // expect semicolon
+      if (isConstant) {
+        throw "Must assigne value to constant expression. No value provided.";
+      }
+
+      return {
+        kind: "VarDeclaration",
+        identifier,
+        constant: false,
+      } as VarDeclaration;
+    }
+
+    this.expect(TokenType.Equals, "Expected equals token following identifier in var declaration.");
+
+    const declaration = {
+      kind: "VarDeclaration",
+      value: this.parse_expr(),
+      identifier,
+      constant: isConstant,
+    } as VarDeclaration;
+
+    this.expect(TokenType.Semicolon, "Variable declaration statment must end with semicolon.");
+
+    return declaration;
   }
 
   // Handle expressions
@@ -120,10 +163,6 @@ export default class Parser {
       // User defined values.
       case TokenType.Identifier:
         return { kind: "Identifier", symbol: this.eat().value } as Identifier;
-
-      case TokenType.Null:
-        this.eat(); // advance past null keyword
-        return { kind: "NullLiteral", value: "null" } as NullLiteral;
 
       // Constants and Numeric Constants
       case TokenType.Number:

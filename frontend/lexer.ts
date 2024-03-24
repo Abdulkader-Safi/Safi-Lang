@@ -6,16 +6,16 @@
 // Represents tokens that our language understands in parsing.
 export enum TokenType {
   // Literal Types
-  Null,
   Number,
   Identifier,
-
   // Keywords
   Let,
+  Const,
 
   // Grouping * Operators
   BinaryOperator,
   Equals,
+  Semicolon,
   OpenParen,
   CloseParen,
   EOF, // Signified the end of file
@@ -26,6 +26,7 @@ export enum TokenType {
  */
 const KEYWORDS: Record<string, TokenType> = {
   let: TokenType.Let,
+  const: TokenType.Const,
 };
 
 // Reoresents a single token from the source-code.
@@ -42,21 +43,21 @@ function token(value = "", type: TokenType): Token {
 /**
  * Returns whether the character passed in alphabetic -> [a-zA-Z]
  */
-function isAlpha(src: string) {
+function isalpha(src: string) {
   return src.toUpperCase() != src.toLowerCase();
 }
 
 /**
  * Returns true if the character is whitespace like -> [\s, \t, \n]
  */
-function isSkipAble(str: string) {
-  return str === " " || str === "\n" || str === "\t";
+function isskippable(str: string) {
+  return str == " " || str == "\n" || str == "\t";
 }
 
 /**
- * Return whether the character is a valid integer -> [0-9]
+ Return whether the character is a valid integer -> [0-9]
  */
-function isInt(str: string) {
+function isint(str: string) {
   const c = str.charCodeAt(0);
   const bounds = ["0".charCodeAt(0), "9".charCodeAt(0)];
   return c >= bounds[0] && c <= bounds[1];
@@ -76,31 +77,33 @@ export function tokenize(sourceCode: string): Token[] {
   // produce tokens until the EOF is reached.
   while (src.length > 0) {
     // BEGIN PARSING ONE CHARACTER TOKENS
-    if (src[0] === "(") {
+    if (src[0] == "(") {
       tokens.push(token(src.shift(), TokenType.OpenParen));
-    } else if (src[0] === ")") {
+    } else if (src[0] == ")") {
       tokens.push(token(src.shift(), TokenType.CloseParen));
     } // HANDLE BINARY OPERATORS
-    else if (src[0] === "+" || src[0] === "-" || src[0] === "*" || src[0] === "/" || src[0] === "%") {
+    else if (src[0] == "+" || src[0] == "-" || src[0] == "*" || src[0] == "/" || src[0] == "%") {
       tokens.push(token(src.shift(), TokenType.BinaryOperator));
     } // Handle Conditional & Assignment Tokens
-    else if (src[0] === "=") {
+    else if (src[0] == "=") {
       tokens.push(token(src.shift(), TokenType.Equals));
+    } else if (src[0] == ";") {
+      tokens.push(token(src.shift(), TokenType.Semicolon));
     } // HANDLE MULTICHARACTER KEYWORDS, TOKENS, IDENTIFIERS ETC...
     else {
       // Handle numeric literals -> Integers
-      if (isInt(src[0])) {
+      if (isint(src[0])) {
         let num = "";
-        while (src.length > 0 && isInt(src[0])) {
+        while (src.length > 0 && isint(src[0])) {
           num += src.shift();
         }
 
         // append new numeric token.
         tokens.push(token(num, TokenType.Number));
       } // Handle Identifier & Keyword Tokens.
-      else if (isAlpha(src[0])) {
+      else if (isalpha(src[0])) {
         let ident = "";
-        while (src.length > 0 && isAlpha(src[0])) {
+        while (src.length > 0 && isalpha(src[0])) {
           ident += src.shift();
         }
 
@@ -108,19 +111,19 @@ export function tokenize(sourceCode: string): Token[] {
         const reserved = KEYWORDS[ident];
         // If value is not undefined then the identifier is
         // reconized keyword
-        if (reserved) {
+        if (typeof reserved == "number") {
           tokens.push(token(ident, reserved));
         } else {
-          // Unrecognized name must mean user defined symbol.
+          // Unreconized name must mean user defined symbol.
           tokens.push(token(ident, TokenType.Identifier));
         }
-      } else if (isSkipAble(src[0])) {
-        // Skip unended chars.
+      } else if (isskippable(src[0])) {
+        // Skip uneeded chars.
         src.shift();
-      } // Handle unrecognized characters.
-      // TODO: Implement better errors and error recovery.
+      } // Handle unreconized characters.
+      // TODO: Impliment better errors and error recovery.
       else {
-        console.error("Unrecognized character found in source: ", src[0].charCodeAt(0), src[0]);
+        console.error("Unreconized character found in source: ", src[0].charCodeAt(0), src[0]);
         Deno.exit(1);
       }
     }

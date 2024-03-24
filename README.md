@@ -16,7 +16,7 @@ deno run -A main.ts
 ```BASH
 deno run -A main.ts
 
-Repl v0.1
+Repl v0.X
 >
 ```
 
