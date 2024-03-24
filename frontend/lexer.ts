@@ -6,6 +6,7 @@
 // Represents tokens that our language understands in parsing.
 export enum TokenType {
   // Literal Types
+  Null,
   Number,
   Identifier,
 
@@ -49,7 +50,7 @@ function isAlpha(src: string) {
  * Returns true if the character is whitespace like -> [\s, \t, \n]
  */
 function isSkipAble(str: string) {
-  return str == " " || str == "\n" || str == "\t";
+  return str === " " || str === "\n" || str === "\t";
 }
 
 /**
@@ -75,15 +76,15 @@ export function tokenize(sourceCode: string): Token[] {
   // produce tokens until the EOF is reached.
   while (src.length > 0) {
     // BEGIN PARSING ONE CHARACTER TOKENS
-    if (src[0] == "(") {
+    if (src[0] === "(") {
       tokens.push(token(src.shift(), TokenType.OpenParen));
-    } else if (src[0] == ")") {
+    } else if (src[0] === ")") {
       tokens.push(token(src.shift(), TokenType.CloseParen));
     } // HANDLE BINARY OPERATORS
-    else if (src[0] == "+" || src[0] == "-" || src[0] == "*" || src[0] == "/" || src[0] == "%") {
+    else if (src[0] === "+" || src[0] === "-" || src[0] === "*" || src[0] === "/" || src[0] === "%") {
       tokens.push(token(src.shift(), TokenType.BinaryOperator));
     } // Handle Conditional & Assignment Tokens
-    else if (src[0] == "=") {
+    else if (src[0] === "=") {
       tokens.push(token(src.shift(), TokenType.Equals));
     } // HANDLE MULTICHARACTER KEYWORDS, TOKENS, IDENTIFIERS ETC...
     else {

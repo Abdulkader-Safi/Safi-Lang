@@ -13,9 +13,7 @@ your need
 deno run -A main.ts
 ```
 
-it will return playground for now it only show us the AST working and how it split math equation
-
-```bash
+```BASH
 deno run -A main.ts
 
 Repl v0.1
@@ -24,25 +22,12 @@ Repl v0.1
 
 example:
 
-```JSON
+```BASH
 deno run -A main.ts
 
-Repl v0.1
+Repl v0.2
 >  (4 - 5) * 4
-{
-  kind: "Program",
-  body: [
-    {
-      kind: "BinaryExpr",
-      left: {
-        kind: "BinaryExpr",
-        left: { kind: "NumericLiteral", value: 4 },
-        right: { kind: "NumericLiteral", value: 5 },
-        operator: "-"
-      },
-      right: { kind: "NumericLiteral", value: 4 },
-      operator: "*"
-    }
-  ]
-}
+{ value: -4, type: "number" }
+>  (4 + 4) * 4
+{ value: 2, type: "number" }
 ```

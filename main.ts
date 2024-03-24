@@ -1,10 +1,11 @@
-import Parser from "./safi_lang/parser.ts";
+import Parser from "./frontend/parser.ts";
+import { evaluate } from "./runtime/interpreter.ts";
 
 repl();
 
 function repl() {
   const parser = new Parser();
-  console.log("\nRepl v0.1");
+  console.log("\nRepl v0.2");
 
   // Continue Repl Until User Stops Or Types `exit`
   while (true) {
@@ -16,6 +17,7 @@ function repl() {
 
     // Produce AST From sourc-code
     const program = parser.produceAST(input);
-    console.log(program);
+    const result = evaluate(program);
+    console.log(result);
   }
 }
