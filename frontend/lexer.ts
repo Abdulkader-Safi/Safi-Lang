@@ -1,3 +1,4 @@
+// https://github.com/tlaceby/guide-to-interpreters-series
 // -----------------------------------------------------------
 // ---------------          LEXER          -------------------
 // ---  Responsible for producing tokens from the source   ---
@@ -15,9 +16,16 @@ export enum TokenType {
   // Grouping * Operators
   BinaryOperator,
   Equals,
+  Comma,
+  Dot,
+  Colon,
   Semicolon,
-  OpenParen,
-  CloseParen,
+  OpenParen, // (
+  CloseParen, // )
+  OpenBrace, // {
+  CloseBrace, // }
+  OpenBracket, // [
+  CloseBracket, //]
   EOF, // Signified the end of file
 }
 
@@ -51,7 +59,7 @@ function isalpha(src: string) {
  * Returns true if the character is whitespace like -> [\s, \t, \n]
  */
 function isskippable(str: string) {
-  return str == " " || str == "\n" || str == "\t";
+  return str == " " || str == "\n" || str == "\t" || str == "\r";
 }
 
 /**
@@ -81,6 +89,14 @@ export function tokenize(sourceCode: string): Token[] {
       tokens.push(token(src.shift(), TokenType.OpenParen));
     } else if (src[0] == ")") {
       tokens.push(token(src.shift(), TokenType.CloseParen));
+    } else if (src[0] == "{") {
+      tokens.push(token(src.shift(), TokenType.OpenBrace));
+    } else if (src[0] == "}") {
+      tokens.push(token(src.shift(), TokenType.CloseBrace));
+    } else if (src[0] == "[") {
+      tokens.push(token(src.shift(), TokenType.OpenBracket));
+    } else if (src[0] == "]") {
+      tokens.push(token(src.shift(), TokenType.CloseBracket));
     } // HANDLE BINARY OPERATORS
     else if (src[0] == "+" || src[0] == "-" || src[0] == "*" || src[0] == "/" || src[0] == "%") {
       tokens.push(token(src.shift(), TokenType.BinaryOperator));
@@ -89,6 +105,12 @@ export function tokenize(sourceCode: string): Token[] {
       tokens.push(token(src.shift(), TokenType.Equals));
     } else if (src[0] == ";") {
       tokens.push(token(src.shift(), TokenType.Semicolon));
+    } else if (src[0] == ":") {
+      tokens.push(token(src.shift(), TokenType.Colon));
+    } else if (src[0] == ",") {
+      tokens.push(token(src.shift(), TokenType.Comma));
+    } else if (src[0] == ".") {
+      tokens.push(token(src.shift(), TokenType.Dot));
     } // HANDLE MULTICHARACTER KEYWORDS, TOKENS, IDENTIFIERS ETC...
     else {
       // Handle numeric literals -> Integers

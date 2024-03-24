@@ -1,4 +1,5 @@
 // deno-lint-ignore-file no-empty-interface
+// https://github.com/tlaceby/guide-to-interpreters-series
 // -----------------------------------------------------------
 // --------------          AST TYPES        ------------------
 // ---     Defines the structure of our languages AST      ---
@@ -9,6 +10,12 @@ export type NodeType =
   | "Program"
   | "VarDeclaration"
   // EXPRESSIONS
+  | "AssignmentExpr"
+  | "MemberExpr"
+  | "CallExpr"
+  // Literals
+  | "Property"
+  | "ObjectLiteral"
   | "NumericLiteral"
   | "Identifier"
   | "BinaryExpr";
@@ -39,6 +46,12 @@ export interface VarDeclaration extends Stmt {
 /**  Expressions will result in a value at runtime unlike Statements */
 export interface Expr extends Stmt {}
 
+export interface AssignmentExpr extends Expr {
+  kind: "AssignmentExpr";
+  assigne: Expr;
+  value: Expr;
+}
+
 /**
  * A operation with two sides seperated by a operator.
  * Both sides can be ANY Complex Expression.
@@ -49,6 +62,19 @@ export interface BinaryExpr extends Expr {
   left: Expr;
   right: Expr;
   operator: string; // needs to be of type BinaryOperator
+}
+
+export interface CallExpr extends Expr {
+  kind: "CallExpr";
+  args: Expr[];
+  caller: Expr;
+}
+
+export interface MemberExpr extends Expr {
+  kind: "MemberExpr";
+  object: Expr;
+  property: Expr;
+  computed: boolean;
 }
 
 // LITERAL / PRIMARY EXPRESSION TYPES
@@ -66,4 +92,15 @@ export interface Identifier extends Expr {
 export interface NumericLiteral extends Expr {
   kind: "NumericLiteral";
   value: number;
+}
+
+export interface Property extends Expr {
+  kind: "Property";
+  key: string;
+  value?: Expr;
+}
+
+export interface ObjectLiteral extends Expr {
+  kind: "ObjectLiteral";
+  properties: Property[];
 }

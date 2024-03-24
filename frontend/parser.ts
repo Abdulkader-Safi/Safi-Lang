@@ -1,5 +1,18 @@
 // deno-lint-ignore-file no-explicit-any
-import { BinaryExpr, Expr, Identifier, NumericLiteral, Program, Stmt, VarDeclaration } from "./ast.ts";
+import {
+  AssignmentExpr,
+  BinaryExpr,
+  CallExpr,
+  Expr,
+  Identifier,
+  MemberExpr,
+  NumericLiteral,
+  ObjectLiteral,
+  Program,
+  Property,
+  Stmt,
+  VarDeclaration,
+} from "./ast.ts";
 
 import { Token, tokenize, TokenType } from "./lexer.ts";
 
@@ -110,7 +123,56 @@ export default class Parser {
 
   // Handle expressions
   private parse_expr(): Expr {
-    return this.parse_additive_expr();
+    return this.parse_assignment_expr();
+  }
+
+  private parse_assignment_expr(): Expr {
+    const left = this.parse_object_expr();
+
+    if (this.at().type == TokenType.Equals) {
+      this.eat(); // advance past equals
+      const value = this.parse_assignment_expr();
+      return { value, assigne: left, kind: "AssignmentExpr" } as AssignmentExpr;
+    }
+
+    return left;
+  }
+
+  private parse_object_expr(): Expr {
+    // { Prop[] }
+    if (this.at().type !== TokenType.OpenBrace) {
+      return this.parse_additive_expr();
+    }
+
+    this.eat(); // advance past open brace.
+    const properties = new Array<Property>();
+
+    while (this.not_eof() && this.at().type != TokenType.CloseBrace) {
+      const key = this.expect(TokenType.Identifier, "Object literal key exprected").value;
+
+      // Allows shorthand key: pair -> { key, }
+      if (this.at().type == TokenType.Comma) {
+        this.eat(); // advance past comma
+        properties.push({ key, kind: "Property" } as Property);
+        continue;
+      } // Allows shorthand key: pair -> { key }
+      else if (this.at().type == TokenType.CloseBrace) {
+        properties.push({ key, kind: "Property" });
+        continue;
+      }
+
+      // { key: val }
+      this.expect(TokenType.Colon, "Missing colon following identifier in ObjectExpr");
+      const value = this.parse_expr();
+
+      properties.push({ kind: "Property", value, key });
+      if (this.at().type != TokenType.CloseBrace) {
+        this.expect(TokenType.Comma, "Expected comma or closing bracket following property");
+      }
+    }
+
+    this.expect(TokenType.CloseBrace, "Object literal missing closing brace.");
+    return { kind: "ObjectLiteral", properties } as ObjectLiteral;
   }
 
   // Handle Addition & Subtraction Operations
@@ -133,11 +195,11 @@ export default class Parser {
 
   // Handle Multiplication, Division & Modulo Operations
   private parse_multiplicitave_expr(): Expr {
-    let left = this.parse_primary_expr();
+    let left = this.parse_call_member_expr();
 
     while (this.at().value == "/" || this.at().value == "*" || this.at().value == "%") {
       const operator = this.eat().value;
-      const right = this.parse_primary_expr();
+      const right = this.parse_call_member_expr();
       left = {
         kind: "BinaryExpr",
         left,
@@ -149,9 +211,90 @@ export default class Parser {
     return left;
   }
 
+  // foo.x()()
+  private parse_call_member_expr(): Expr {
+    const member = this.parse_member_expr();
+
+    if (this.at().type == TokenType.OpenParen) {
+      return this.parse_call_expr(member);
+    }
+
+    return member;
+  }
+
+  private parse_call_expr(caller: Expr): Expr {
+    let call_expr: Expr = {
+      kind: "CallExpr",
+      caller,
+      args: this.parse_args(),
+    } as CallExpr;
+
+    if (this.at().type == TokenType.OpenParen) {
+      call_expr = this.parse_call_expr(call_expr);
+    }
+
+    return call_expr;
+  }
+
+  private parse_args(): Expr[] {
+    this.expect(TokenType.OpenParen, "Expected open parenthesis");
+    const args = this.at().type == TokenType.CloseParen ? [] : this.parse_arguments_list();
+
+    this.expect(TokenType.CloseParen, "Missing closing parenthesis inside arguments list");
+    return args;
+  }
+
+  private parse_arguments_list(): Expr[] {
+    const args = [this.parse_assignment_expr()];
+
+    while (this.at().type == TokenType.Comma && this.eat()) {
+      args.push(this.parse_assignment_expr());
+    }
+
+    return args;
+  }
+
+  private parse_member_expr(): Expr {
+    let object = this.parse_primary_expr();
+
+    while (this.at().type == TokenType.Dot || this.at().type == TokenType.OpenBracket) {
+      const operator = this.eat();
+      let property: Expr;
+      let computed: boolean;
+
+      // non-computed values aka obj.expr
+      if (operator.type == TokenType.Dot) {
+        computed = false;
+        // get identifier
+        property = this.parse_primary_expr();
+        if (property.kind != "Identifier") {
+          throw `Cannonot use dot operator without right hand side being a identifier`;
+        }
+      } else {
+        // this allows obj[computedValue]
+        computed = true;
+        property = this.parse_expr();
+        this.expect(TokenType.CloseBracket, "Missing closing bracket in computed value.");
+      }
+
+      object = {
+        kind: "MemberExpr",
+        object,
+        property,
+        computed,
+      } as MemberExpr;
+    }
+
+    return object;
+  }
+
   // Orders Of Prescidence
+  // Assignment
+  // Object
   // AdditiveExpr
   // MultiplicitaveExpr
+  // Call
+  // Member
   // PrimaryExpr
 
   // Parse Literal Values & Grouping Expressions
