@@ -53,7 +53,7 @@ function isSkipAble(str: string) {
 }
 
 /**
- Return whether the character is a valid integer -> [0-9]
+ * Return whether the character is a valid integer -> [0-9]
  */
 function isInt(str: string) {
   const c = str.charCodeAt(0);
